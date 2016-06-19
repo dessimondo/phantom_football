@@ -5,14 +5,25 @@
     <title>Phantom football</title>
     <style>
     	* { padding: 0; margin: 0; }
-    	canvas { background: #a5bd7b; display: block; margin: 0 auto; }
+    	canvas { background: #a5bd7b; display: block; }
+    	.first {
+		  position: absolute;
+		  /*display: none;*/
+		}
+
+
+
     </style>
 </head>
 <body>
-
+ <div id="splashScreen" class="first">
+  <img src="phantom_football.png" />
+</div>
 <canvas id="myCanvas" width="300" height="250"></canvas>
 
 <script>
+
+
 
 var canvas = document.getElementById('myCanvas');
 var ctx = canvas.getContext("2d");
@@ -50,6 +61,7 @@ var leftPressed = false;
 var goalkeeper_blocked = 0;
 var goalkeeper_missed = 0;
 var attempts_left = 3;
+
 
 var footBall = {
 
@@ -205,7 +217,6 @@ var footBall = {
 
 	draw : function(currentTime){
 
-
     	//   makes paddle move left and right and only within the canvas
 		if(rightPressed && goalieX < canvas.width-goalieWidth) {
 			goalieX += 7;
@@ -221,6 +232,7 @@ var footBall = {
         if(!footBall.isShooting){
             // time has elapsed, let's shoot again
             if(currentTime>footBall.nextShotTime){
+            	console.log("Shot time delay " + footBall.nextShotTime);
                 footBall.isShooting=true;
             }else{
                 // time has not elapsed, just request another loop
@@ -287,9 +299,25 @@ var footBall = {
 
 }
 
-footBall.nextShotTime = footBall.delayUntilNextShot;
-requestAnimationFrame(footBall.draw);
 
+
+
+
+var hideIntro = function (e) {
+	 
+	 
+	if(e.keyCode == 32) {
+	    document.getElementById('splashScreen').style.display = 'none';
+	    console.log("hide");
+
+
+	    requestAnimationFrame(footBall.draw);
+	    footBall.nextShotTime = footBall.delayUntilNextShot;
+	}
+
+};
+
+document.addEventListener("keydown", hideIntro, false);
 
 // Defines what functions are fired when keydown or keyup event triggers
 document.addEventListener("keydown", footBall.controls.keyDownHandler, false);
