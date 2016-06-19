@@ -5,22 +5,17 @@
     <title>Phantom football</title>
     <style>
     	* { padding: 0; margin: 0; }
-    	canvas { background: #a5bd7b; display: block; }
-    	.first {
-		  position: absolute;
-		  /*display: none;*/
-		}
-
-
+    	#myCanvas { 
+    		background: url('phantom_football.jpg');
+			display: block; 
+    	}
 
     </style>
 </head>
 <body>
- <div id="splashScreen" class="first">
-  <img src="phantom_football.png" />
-</div>
-<canvas id="myCanvas" width="300" height="250"></canvas>
 
+<canvas id="myCanvas" width="300" height="250"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.18.5/TweenMax.min.js"></script>
 <script>
 
 
@@ -61,6 +56,10 @@ var leftPressed = false;
 var goalkeeper_blocked = 0;
 var goalkeeper_missed = 0;
 var attempts_left = 3;
+var lastAttempt='';
+var isGameOver=false;
+
+TweenMax.from("#myCanvas", 0.5, {opacity: 0, scale: 0, ease: Bounce.easeOut});
 
 
 var footBall = {
@@ -69,10 +68,14 @@ var footBall = {
     isShooting:false,
     
     // time when next shot will run
-    nextShotTime:0,
+    nextShotTime: Infinity,
     
     // delay until next shot will run
     delayUntilNextShot:3000,
+
+    // is the game currently running
+    inGame : false,
+
 
 	shapes : {
 		ball: function (){
@@ -141,7 +144,16 @@ var footBall = {
 			ctx.font = "16px Arial";
 		    ctx.fillStyle = "#ffffff";
 		    ctx.fillText("GAME OVER! You Win" , 20, canvas.height / 2);
-		}
+		},
+
+		lastAttempt : function(){
+            ctx.font = isGameOver?'18px Arial':'30px Arial';
+            ctx.fillStyle = "#ff0000";
+            ctx.textAlign='center';
+            ctx.fillText(lastAttempt,canvas.width/2,canvas.height/2);
+            ctx.textAlign='left';
+        }
+
 
 	},
 
@@ -177,13 +189,16 @@ var footBall = {
 
 	calculateScore : function(){
 		if(goalkeeper_missed > goalkeeper_blocked){
-			footBall.shapes.gameOverLoserMessage();
-			document.location.reload();
-
-		} else {
-			footBall.shapes.gameOverWinnerMessage();
-			document.location.reload();
-		}
+            lastAttempt="GAME OVER! YOU HAVE LOST!";
+            isGameOver=true;
+        } else {
+            lastAttempt="GAME OVER! YOU HAVE WON!";
+            isGameOver=true;
+        }
+        setTimeout(function(){
+            document.location.reload();
+            isGameOver=false;
+        },3000);
 	},
 
 
@@ -213,7 +228,9 @@ var footBall = {
         footBall.shapes.score();
         footBall.shapes.missedScore();
         footBall.shapes.attempts();
+        footBall.shapes.lastAttempt();
     },
+
 
 	draw : function(currentTime){
 
@@ -232,14 +249,17 @@ var footBall = {
         if(!footBall.isShooting){
             // time has elapsed, let's shoot again
             if(currentTime>footBall.nextShotTime){
-            	console.log("Shot time delay " + footBall.nextShotTime);
                 footBall.isShooting=true;
+
+                lastAttempt='';
             }else{
                 // time has not elapsed, just request another loop
                 requestAnimationFrame(footBall.draw);
                 return;
             }
         }
+
+
 
         // adds values to the balls  x and y position every frame
         x += dx;
@@ -248,23 +268,20 @@ var footBall = {
 
 
 		// Ball hits the goal 
-		if(y + dy > canvas.height - goal_height) {
+		if(y + dy > (canvas.height - goal_height) - ballRadius ) {
 
 			// end the shot
             footBall.isShooting=false;
             // delay the next shot
             footBall.nextShotTime=currentTime+footBall.delayUntilNextShot;
 			
-
+            lastAttempt = "Missed!"
 			attempts_left--;
 			goalkeeper_missed++;
 			if (!attempts_left){
 				footBall.calculateScore();
 			} 
 			else {
-
-
-				footBall.shapes.missedBallMessage();
 
 				footBall.resetShapePositions();
 			}
@@ -278,6 +295,7 @@ var footBall = {
             // delay the next shot
             footBall.nextShotTime=currentTime+footBall.delayUntilNextShot;
 
+            lastAttempt = "Saved!"
 			attempts_left--;
 			goalkeeper_blocked++;
 
@@ -285,7 +303,7 @@ var footBall = {
 				footBall.calculateScore();
 			} 
 			else {
-				footBall.shapes.savedBallMessage();
+
 				footBall.resetShapePositions();
 				
 			}
@@ -304,25 +322,22 @@ var footBall = {
 
 
 var hideIntro = function (e) {
-	 
-	 
-	if(e.keyCode == 32) {
-	    document.getElementById('splashScreen').style.display = 'none';
-	    console.log("hide");
-
-
-	    requestAnimationFrame(footBall.draw);
-	    footBall.nextShotTime = footBall.delayUntilNextShot;
+	if(e.keyCode == 32 && footBall.inGame == false) {
+	    document.getElementById('myCanvas').style.background = '#a5bd7b';
+		requestAnimationFrame(footBall.draw);
+		
+		footBall.inGame = true;
+		// performance.now() is the same value as currentTime (requestAnimationFrame's timestamp when activated)
+		footBall.nextShotTime = performance.now() + footBall.delayUntilNextShot;
 	}
-
 };
 
-document.addEventListener("keydown", hideIntro, false);
 
-// Defines what functions are fired when keydown or keyup event triggers
+// Defines what functions are fired when keydown, keyup or mousemove event triggers
 document.addEventListener("keydown", footBall.controls.keyDownHandler, false);
 document.addEventListener("keyup", footBall.controls.keyUpHandler, false);
 document.addEventListener("mousemove", footBall.controls.mouseMoveHandler, false);
+document.addEventListener("keydown", hideIntro, false);
 
 </script>
 
